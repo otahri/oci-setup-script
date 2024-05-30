@@ -1,6 +1,6 @@
 # OCI Setup Script
 
-This script automates the creation of OCI compartments, VCNs, subnets, groups ... based on a provided configuration and data file, following this hiearchy :
+This script automates the creation of OCI compartments, VCNs, subnets, groups ... based on a provided configuration and data file, following this hierarchy :
 
 ![alt text](image.jpeg)
 
