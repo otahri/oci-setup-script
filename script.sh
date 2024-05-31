@@ -101,15 +101,17 @@ for env in "${env_list[@]}"; do
         snet=$(eval echo "$subnet_name")
         grp_owner=$(eval echo "$group_owner_name")
         grp_user=$(eval echo "$group_user_name")
-        plcy_st_owner=$(eval "echo \"$policy_st_owner\"" | sed -e "s/\$app_name/$app_name/g" -e "s/\$env/$env/g" -e 's/\[/\["/g' -e 's/\]/\"]/g')
-        plcy_st_user=$(eval "echo \"$policy_st_user\"" | sed -e "s/\$app_name/$app_name/g" -e "s/\$env/$env/g" -e 's/\[/\["/g' -e 's/\]/\"]/g')
+        plcy_st_owner=$(eval "echo \"$policy_st_owner\"" | sed -e "s/\$app_name/$app_name/g" -e "s/\$env/$env/g" -e 's/\[/\["/g' -e 's/\]/\"]/g' -e 's/\,/\","/g')
+        plcy_st_user=$(eval "echo \"$policy_st_user\"" | sed -e "s/\$app_name/$app_name/g" -e "s/\$env/$env/g" -e 's/\[/\["/g' -e 's/\]/\"]/g' -e 's/\,/\","/g')
         vcn=$(eval echo "$vcn_name")
-        
+
         new_cmp=$(eval create_cmp $cmp_app "${!cmp_env_ocid}") 
 
-        vcn_ocid=$(eval get_vcn_id_by_name $vcn "${!cmp_env_ocid}")
+        shrd_ntw_cmp_id=$(eval get_cmp_id_by_name $cmp_shared_network "${!cmp_env_ocid}")
+
+        vcn_ocid=$(eval get_vcn_id_by_name $vcn $shrd_ntw_cmp_id)
         echo "vcn ocid of $vcn : $vcn_ocid"
-        new_snet=$(eval create_snet $snet "${!cmp_env_ocid}" $vcn_ocid $snet_cidr)
+        new_snet=$(eval create_snet $snet $shrd_ntw_cmp_id $vcn_ocid $snet_cidr)
         echo "Subnet Created : $new_snet"
 
         ownr_grp=$(eval create_grp $grp_owner)
