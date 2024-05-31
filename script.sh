@@ -74,30 +74,41 @@ create_plcy() {
     local cmp_id=$1
     local plcy_name=$2
     local plcy_st=$3
-    $oci_cmd iam policy create --compartment-id $cmp_id --name $plcy_name --statements "$plcy_st" --description "Policy for $plcy_name"
+    $oci_cmd iam policy create --compartment-id $cmp_id --name $plcy_name --statements "$plcy_st" --description "Policy for $plcy_name" --query data.id --raw-output
 }
+add_plcy_st() {
+    local plcy_id=$1
+    local new_st=$2
+    local policy=$($oci_cmd iam policy get --policy-id $plcy_id)
+    local existing_statements=$(echo $policy | jq -r '.data.statements | @json')
+    local statements=$(echo $existing_statements | jq --argjson new "$new_st" '. + $new')
+    $oci_cmd iam policy update --policy-id $plcy_id --statements "$statements" --version-date "" --force
+}
+
 
 # -------- main
 source "$config_file"
 
-while IFS="$csv_delimiter" read -r app_name snet_cidr; do
-    for env in "${env_list[@]}"; do
+for env in "${env_list[@]}"; do
+    cmp_env_ocid="cmp_${env}_ocid"
+    cmp_ocid=${!cmp_env_ocid}
+    plcy_name=$(eval echo "$policy_name")
+    new="true"
+
+    while IFS="$csv_delimiter" read -r app_name snet_cidr; do
         app_name=$(echo "$app_name" | tr '[:upper:]' '[:lower:]')
         cmp_app=$(eval echo "$cmp_name")
         snet=$(eval echo "$subnet_name")
         grp_owner=$(eval echo "$group_owner_name")
         grp_user=$(eval echo "$group_user_name")
-        plcy_name=$(eval echo "$policy_name")
         plcy_st_owner=$(eval "echo \"$policy_st_owner\"" | sed -e "s/\$app_name/$app_name/g" -e "s/\$env/$env/g" -e 's/\[/\["/g' -e 's/\]/\"]/g')
         plcy_st_user=$(eval "echo \"$policy_st_user\"" | sed -e "s/\$app_name/$app_name/g" -e "s/\$env/$env/g" -e 's/\[/\["/g' -e 's/\]/\"]/g')
-        cmp_env_ocid="cmp_${env}_ocid"
         vcn=$(eval echo "$vcn_name")
-
+        
         new_cmp=$(eval create_cmp $cmp_app "${!cmp_env_ocid}") 
-        echo "Compartment Created : $new_camp"
 
         vcn_ocid=$(eval get_vcn_id_by_name $vcn "${!cmp_env_ocid}")
-        echo "vcn ocid of ${!cmp_env_ocid} : $vcn_ocid"
+        echo "vcn ocid of $vcn : $vcn_ocid"
         new_snet=$(eval create_snet $snet "${!cmp_env_ocid}" $vcn_ocid $snet_cidr)
         echo "Subnet Created : $new_snet"
 
@@ -105,7 +116,16 @@ while IFS="$csv_delimiter" read -r app_name snet_cidr; do
         usr_grp=$(eval create_grp $grp_user)
         echo "User group Created : $usr_grp"
         echo "Owner group Created : $ownr_grp"
-        
-    done
-done < <(tail -n +2 "$data_file")
+
+        if [ "$new" == "true" ]; then
+            plcy_id=$(create_plcy $cmp_ocid $plcy_name "$plcy_st_owner")
+            add_plcy_st $plcy_id "$plcy_st_user"
+        else
+            add_plcy_st $plcy_id "$plcy_st_owner"
+            add_plcy_st $plcy_id "$plcy_st_user"
+        fi
+        new="false"
+    
+    done < <(tail -n +2 "$data_file")
+done
 
