@@ -46,7 +46,7 @@ create_cmp() {
 get_cmp_id_by_name() {
     local cmp_name=$1
     local parent_cmp_id=$2
-    $oci_cmd iam compartment list --compartment-id $parent_cmp_id --query "data[?\"display-name\"=='$cmp_name'].id | [0]" --raw-output
+    $oci_cmd iam compartment list --compartment-id $parent_cmp_id | jq -r ".data[] | select(.name == \"${cmp_name}\") | .id"
 }
 create_vcn() {
     local cmp_id=$1
