@@ -104,6 +104,7 @@ for env in "${env_list[@]}"; do
         plcy_st_owner=$(eval "echo \"$policy_st_owner\"" | sed -e "s/\$app_name/$app_name/g" -e "s/\$env/$env/g" -e 's/\[/\["/g' -e 's/\]/\"]/g' -e 's/\,/\","/g')
         plcy_st_user=$(eval "echo \"$policy_st_user\"" | sed -e "s/\$app_name/$app_name/g" -e "s/\$env/$env/g" -e 's/\[/\["/g' -e 's/\]/\"]/g' -e 's/\,/\","/g')
         vcn=$(eval echo "$vcn_name")
+        cmp_env_ocid="cmp_${env}_ocid"
 
         new_cmp=$(eval create_cmp $cmp_app "${!cmp_env_ocid}") 
 
